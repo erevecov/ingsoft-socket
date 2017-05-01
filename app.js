@@ -85,7 +85,7 @@ io.on('connection', function(socket){
 		    		end: result.rows[0].finish
 		    	};
 
-		    	io.socket.emit('newEvent', newEvent);
+		    	io.sockets.emit('newEvent', newEvent);
 		    }
 		    //socket.emit('event', result.rows);
 		    //console.log(result.rows);
