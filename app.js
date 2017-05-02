@@ -14,40 +14,22 @@ var config = {
  
 var pool = new pg.Pool(config);
 
-/*
-var events = [ 
-  { 
-  	title: 'title1',
-    start: '2017-05-02T09:40:00',
-    end: '2017-05-02T10:10:00' 
-  },
-  { 
-  	title: 'title2',
-    start: '2017-05-03T10:40:00',
-    end: '2017-05-03T11:00:00' 
-  },
-  { 
-  	title: 'title3',
-    start: '2017-05-04T10:00:00',
-    end: '2017-05-04T10:30:00' 
-  }
-];
-*/
-
 io.on('connection', function(socket){
 
 	socket.on('disconnect', function(){
 		console.log('user disconnected');
 	});
 
-	socket.on('room', function(data){ // cuando se conecta un usuario
+	socket.on('room', function(data){ 
     	pool.connect(function(err, client, done) {
 		  if(err) {
 		    return console.error('error fetching client from pool', err);
 		  }
 		  client.query(`SELECT schedule.id, schedule.start, schedule.finish AS end, schedule.client_name AS title  
 		  				FROM schedule
-		  				WHERE schedule.room = (SELECT rooms.id FROM rooms WHERE rooms.name = '${data}')`, function(err, result) { 
+		  				WHERE schedule.room = (SELECT rooms.id FROM rooms WHERE rooms.name = '${data.room}')
+		  				AND schedule.start > '${data.init}' 
+		  				AND schedule.finish < '${data.finish}'`, function(err, result) { 
 		    done(err);
 		 
 		    if(err) {
@@ -80,6 +62,7 @@ io.on('connection', function(socket){
 
 		    if (result.rows[0].id) {
 		    	var newEvent = {
+		    		id: result.rows[0].id,
 		    		title: result.rows[0].client_name,
 		    		start: result.rows[0].start,
 		    		end: result.rows[0].finish
@@ -87,6 +70,28 @@ io.on('connection', function(socket){
 
 		    	io.sockets.emit('newEvent', newEvent);
 		    }
+		    //socket.emit('event', result.rows);
+		    //console.log(result.rows);
+		  });
+		});
+	});
+
+
+	socket.on('deleteEvent', function(id){
+		console.log(id)
+		pool.connect(function(err, client, done) {
+		  if(err) {
+		    return console.error('error fetching client from pool', err);
+		  }
+		  client.query(`DELETE FROM schedule WHERE id = ${id};`, function(err) { 
+		    done(err);
+		 
+		    if(err) {
+		      return console.error('error running query', err);
+		    }
+
+		    io.sockets.emit('deleteEvent', id);
+
 		    //socket.emit('event', result.rows);
 		    //console.log(result.rows);
 		  });
